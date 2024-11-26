@@ -19,7 +19,7 @@ def init_driver():
 
 # Função para configurar o banco de dados
 def setup_database():
-    conn = sqlite3.connect("stations.db")  # Conectar ao banco de dados (cria o arquivo se não existir)
+    conn = sqlite3.connect("stations.db")  # cria o arquivo se não existir
     cursor = conn.cursor()
     # Criar a tabela
     cursor.execute("""
@@ -48,13 +48,13 @@ def process_locality(driver, locality):
         search_input = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "Local"))
         )
-        driver.execute_script("arguments[0].scrollIntoView();", search_input)  # Rolar até o campo de busca
-        time.sleep(1)  # Aguardar estabilização
+        driver.execute_script("arguments[0].scrollIntoView();", search_input)
+        time.sleep(1)
 
         search_input.clear()
         search_input.send_keys(locality)
         search_input.send_keys(Keys.RETURN)
-        time.sleep(5)  # Aguardar os resultados
+        time.sleep(5)
 
         station_details = []
         processed_stations = set()
@@ -101,9 +101,9 @@ def process_locality(driver, locality):
         print(f"Error processing locality {locality}: {e}")
         return []
 
-# Função principal
+
 def main():
-    conn = setup_database()  # Configurar o banco de dados
+    conn = setup_database()
     driver = init_driver()
     results = []
 
@@ -117,18 +117,18 @@ def main():
         localization_not_button.click()
         time.sleep(2)
 
-        with open("C:\\POI-s_LonduBlis\\Scraping\\dados\\localidades.txt", "r", encoding="utf-8") as file:
+        with open("C:\\POI-s_LonduBlis\\scraping\\data\\distritos.txt", "r", encoding="utf-8") as file:
             localities = file.read().splitlines()
 
         for locality in localities:
             print(f"Processing locality: {locality}")
             result = process_locality(driver, locality)
-            save_to_database(conn, result)  # Salvar os dados no banco de dados
+            save_to_database(conn, result)
             results.extend(result)
 
     finally:
         driver.quit()
-        conn.close()  # Fechar a conexão com o banco de dados
+        conn.close()
 
     if results:
         print("\nAll Station Details:")
