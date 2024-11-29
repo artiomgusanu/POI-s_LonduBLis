@@ -17,7 +17,7 @@ def init_driver():
     driver = webdriver.Firefox(service=service)
     return driver
 
-# Função para configurar o banco de dados
+# Função para configurar a base de dados
 def setup_database():
     conn = sqlite3.connect("stations.db")  # cria o arquivo se não existir
     cursor = conn.cursor()
