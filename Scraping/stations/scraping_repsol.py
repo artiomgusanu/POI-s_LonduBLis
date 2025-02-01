@@ -1,79 +1,89 @@
-import time
-import json
 from selenium import webdriver
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import time
+import os
+import pandas as pd
 
-# Inicialização do Selenium WebDriver
-driver = webdriver.Chrome()
-driver.get("https://www.repsol.pt/localizador-es-e-pontos-carregamento/")
+# Caminho para o GeckoDriver
+service = Service('C:\\POI-s_LonduBlis\\Scraping\\geckodriver.exe')
+driver = webdriver.Firefox(service=service)
 
-# Aguarde 20 segundos para o carregamento da página
-print("Site aberto. Aguardando 20 segundos para carregamento completo...")
-time.sleep(20)
+# Construir o caminho para o arquivo distritos.txt
+current_dir = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(current_dir, '../data/distritos.txt')
 
-# Fechar a janela de cookies
-try:
-    cookie_button = driver.find_element(By.ID, "onetrust-accept-btn-handler")
-    cookie_button.click()
-    print("Janela de cookies fechada.")
-except Exception as e:
-    print("Nenhuma janela de cookies encontrada ou erro ao fechá-la.")
+# Ler as localidades do arquivo distritos.txt
+with open(file_path, 'r', encoding='utf-8') as file:
+    localidades = [line.strip() for line in file]
 
-# Inserir o local na barra de pesquisa e buscar
-search_bar = driver.find_element(By.ID, "suggestTxtMap")
-search_bar.send_keys("Vila Franca de Xira, Portugal")
-print("Busca realizada na barra de pesquisa.")
+# Lista para armazenar os dados
+dados_bombas = []
 
-# Clicar no botão de pesquisa
-search_button = driver.find_element(By.CSS_SELECTOR, "button.rp-link-click.buttonSearch")
-search_button.click()
-print("Botão de busca clicado.")
+# URL da Repsol
+url = 'https://www.repsol.pt/localizador-es-e-pontos-carregamento'
 
-# Aguardar 10 segundos para carregar os resultados
-time.sleep(10)
+# Percorrer cada localidade
+for localidade in localidades:
+    # Acessar o site
+    driver.get(url)
+    time.sleep(3)  # Esperar o carregamento da página
 
-# Script para interagir com os elementos do mapa
-try:
-    # Alterar o JavaScript para encontrar e clicar no balão do mapa
-    js_script = """
-    const potentialMarkers = [];
+    # Aceitar cookies (caso apareça o botão)
+    try:
+        cookies_button = driver.find_element(By.ID, 'onetrust-accept-btn-handler')
+        cookies_button.click()
+        print("Cookies aceitos.")
+        time.sleep(2)
+    except Exception:
+        print("Botão de cookies não encontrado. Continuando...")
 
-    // Itera sobre todos os elementos do mapa que possam ser ícones de balões
-    const markers = document.querySelectorAll('.marker-dialog, .infoWindow, .gm-style-pbc');
+    # Pesquisar a localidade
+    search_box = driver.find_element(By.CLASS_NAME, 'suggestTxtMap')
+    search_box.send_keys(localidade)
+    search_box.send_keys(Keys.ENTER)
+    time.sleep(5)  # Esperar os resultados carregarem
 
-    markers.forEach(marker => {
-        const markerType = marker.className;
-        if (markerType && (markerType.includes('marker') || markerType.includes('infoWindow') || markerType.includes('gm-style'))) {
-            potentialMarkers.push({
-                element: marker.outerHTML,
-                reason: 'Possível balão no mapa encontrado.',
-                className: marker.className
-            });
-            marker.click();  // Clique no primeiro balão encontrado
-            console.log('Balão encontrado e clicado!');
-        }
-    });
+    # Clicar no botão de lista
+    try:
+        list_button = driver.find_element(By.CLASS_NAME, 'js-open-advanced-search advanced-search-btn rp-btn rp-btn-secondary')
+        list_button.click()
+        time.sleep(5)  # Esperar a lista carregar
+    except Exception as e:
+        print(f"Botão de lista não encontrado para {localidade}. Pulando...")
+        continue
 
-    // Retorna os elementos encontrados e clique no balão
-    return JSON.stringify({ potentialMarkers });
-    """
+    # Encontrar todas as bombas de gasolina
+    bombas = driver.find_elements(By.CLASS_NAME, 'row.no-gutters.cards-result')
 
-    # Executa o script JavaScript no navegador para buscar e clicar no balão
-    result = driver.execute_script(js_script)
-    data = json.loads(result)
-    potential_markers = data.get("potentialMarkers", [])
+    for bomba in bombas:
+        try:
+            # Nome da bomba
+            nome = bomba.find_element(By.CLASS_NAME, 'link-titulo-regular.rp-title-2.maptitle').text
 
-    if potential_markers:
-        print("Elementos encontrados:")
-        for marker in potential_markers:
-            print(f"ClassName: {marker['className']}, Razão: {marker['reason']}")
-    else:
-        print("Nenhum balão ou ícone encontrado.")
+            # Morada, latitude e longitude
+            morada_element = bomba.find_element(By.CLASS_NAME, 'link-titulo-regular.rp-body-1.mapdescription.mapaddress')
+            morada = morada_element.text
+            latitude = morada_element.get_attribute('data-lat')
+            longitude = morada_element.get_attribute('data-lng')
 
-except Exception as e:
-    print(f"Erro ao tentar clicar no balão do mapa: {e}")
+            # Adicionar aos dados
+            dados_bombas.append({
+                'Localidade': localidade,
+                'Nome': nome,
+                'Morada': morada,
+                'Latitude': latitude,
+                'Longitude': longitude
+            })
+        except Exception as e:
+            print(f"Erro ao processar uma bomba em {localidade}: {e}")
 
-finally:
-    # Fechar o navegador após o processo
-    driver.quit()
-    print("Navegador fechado.")
+# Fechar o navegador
+driver.quit()
+
+# Salvar os dados em um arquivo CSV
+df = pd.DataFrame(dados_bombas)
+df.to_csv('bombas_repsol.csv', index=False)
+
+print("Informações salvas em 'bombas_repsol.csv'")
