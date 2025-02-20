@@ -9,7 +9,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 
 # Caminho para o GeckoDriver
-geckodriver_path = "C:\\POI-s_LonduBlis\\Scraping\\geckodriver.exe"
+geckodriver_path = "C:\\projects\\POI-s_LonduBlis\\Scraping\\geckodriver.exe"
 
 # Função para inicializar o WebDriver
 def init_driver():

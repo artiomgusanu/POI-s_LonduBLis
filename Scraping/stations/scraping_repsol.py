@@ -7,7 +7,7 @@ import os
 import pandas as pd
 
 # Caminho para o GeckoDriver
-service = Service('C:\\POI-s_LonduBlis\\Scraping\\geckodriver.exe')
+service = Service('C:\\projects\\POI-s_LonduBlis\\Scraping\\geckodriver.exe')
 driver = webdriver.Firefox(service=service)
 
 # Construir o caminho para o arquivo distritos.txt
