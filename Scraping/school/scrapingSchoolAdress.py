@@ -24,23 +24,28 @@ try:
 except:
     print("Nenhum botão de cookies encontrado ou já aceito.")
 
-# Ler arquivo Excel
-file_path = "C:\\projects\\POI-s_LonduBlis\\teste.xlsx"
-df = pd.read_excel(file_path)
+# Ler arquivo Excel, pulando a primeira linha (linha de cabeçalho)
+file_path = "C:\\projects\\POI-s_LonduBlis\\data\\escolasScraping2.xlsx"
+df = pd.read_excel(file_path, skiprows=1)  # Pula a primeira linha
 nome_escolas = df.iloc[:, 0].tolist()
 
 dados = []
 
 for escola in nome_escolas:
     try:
-        search_box = WebDriverWait(driver, 10).until(
+        search_box = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.NAME, "search_keyword[text]"))
         )
-        search_box.clear()
-        search_box.send_keys(escola, Keys.RETURN)
+
+        # Verificar se há texto no campo de pesquisa e apagar corretamente
+        search_box.send_keys(Keys.CONTROL + "a")  # Seleciona todo o texto
+        search_box.send_keys(Keys.DELETE)  # Apaga o texto selecionado
+        time.sleep(1)  # Pequena pausa para garantir que o campo está limpo
+
+        search_box.send_keys(escola, Keys.RETURN)  # Insere nova pesquisa
 
         # Esperar carregamento dos resultados
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-name='entity_field_post_title'] a"))
         )
 
@@ -54,7 +59,7 @@ for escola in nome_escolas:
         time.sleep(1)
         driver.execute_script("arguments[0].click();", link_escola)
 
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.CLASS_NAME, "drts-location-address"))
         )
 
@@ -82,19 +87,64 @@ for escola in nome_escolas:
         except:
             print("Email não encontrado.")
 
-        campos = driver.find_elements(By.CLASS_NAME, "drts-entity-field-value")
-        num_agrupamento = campos[0].text if len(campos) > 0 else "-"
-        agrupamento = campos[1].text if len(campos) > 1 else "-"
-        sede_escola = campos[2].text if len(campos) > 2 else "-"
-        num_escolas_agrupadas = campos[3].text if len(campos) > 3 else "-"
+        # Agora pegar as informações corretas:
+        num_agrupamento = "-"
+        agrupamento = "-"
+        sede_escola = "-"
+        num_escolas_agrupadas = "-"
+
+        try:
+            # Número do Agrupamento
+            num_agrupamento_element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-name='entity_field_field_n_do_agrupamento'] .drts-entity-field-value"))
+            )
+            num_agrupamento = num_agrupamento_element.text
+
+            # Agrupamento
+            agrupamento_element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-name='entity_field_field_agrupamento'] .drts-entity-field-value"))
+            )
+            agrupamento = agrupamento_element.text
+
+            # Sede Escola
+            sede_escola_element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-name='entity_field_field_escola_sede'] .drts-entity-field-value"))
+            )
+            sede_escola = sede_escola_element.text
+
+            # Número de Escolas Agrupadas
+            num_escolas_agrupadas_element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-name='entity_field_field_numero_escolas_agrupadas'] .drts-entity-field-value"))
+            )
+            num_escolas_agrupadas = num_escolas_agrupadas_element.text
+
+        except Exception as e:
+            print(f"Erro ao pegar os campos adicionais: {e}")
 
         dados.append([escola, morada, freguesia, cod_postal, telefone, email, num_agrupamento, agrupamento, sede_escola, num_escolas_agrupadas])
-        
-        driver.get(url)
+
+        driver.get(url)  # Voltar para a página inicial
+        time.sleep(3)
+
+        #  Verifica se a página inicial carregou corretamente
+        tentativa = 0
+        while tentativa <3:
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.NAME, "search_keyword[text]"))
+                )
+                break
+            except:
+                print("Falha ao voltar para a página inicial, tentando novamente...")
+                driver.get(url)
+                time.sleep(3)
+                tentativa += 1
+    
     except Exception as e:
         print(f"Erro ao processar {escola}: {e}")
 
-csv_path = "C:\\projects\\POI-s_LonduBlis\\escolas_info.csv"
+# Salvar os dados em um arquivo CSV
+csv_path = "C:\\projects\\POI-s_LonduBlis\\data\\escolas_info(2).csv"
 df_resultado = pd.DataFrame(dados, columns=["Escola", "Morada", "Freguesia", "Código Postal", "Telefone", "Email", "Número Agrupamento", "Agrupamento", "Sede Escola", "Número Escolas Agrupadas"])
 df_resultado.to_csv(csv_path, index=False, encoding="utf-8-sig")
 
