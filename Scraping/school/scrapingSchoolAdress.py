@@ -25,7 +25,7 @@ except:
     print("Nenhum botão de cookies encontrado ou já aceito.")
 
 # Ler arquivo Excel, pulando a primeira linha (linha de cabeçalho)
-file_path = "C:\\projects\\POI-s_LonduBlis\\data\\escolasScraping2.xlsx"
+file_path = "C:\\projects\\POI-s_LonduBlis\\aaa.xlsx"
 df = pd.read_excel(file_path, skiprows=1)  # Pula a primeira linha
 nome_escolas = df.iloc[:, 0].tolist()
 

@@ -14,8 +14,8 @@ options.add_argument("--disable-dev-shm-usage")
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 # Carregar o Excel
-file_path = "C:\\projects\\POI-s_LonduBlis\\data\\basico\\listSchool2.xlsx"  # Nome do arquivo Excel
-sheet_name = "Folha1"  # Nome da aba
+file_path = "C:\\projects\\POI-s_LonduBlis\\data\\basico\\listSchoolS.xlsx"  # Nome do arquivo Excel
+sheet_name = "Sheet1"  # Nome da aba
 
 df = pd.read_excel(file_path, sheet_name=sheet_name)
 
